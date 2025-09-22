@@ -14,12 +14,13 @@ class Verification:
         api_keys = data["api_keys"]
         response = []
         current_time = datetime.now()
+        audit_logs = []
         for credential in credentials:
             principal_type = self._get_prinipal_type(credential) 
             type = credential["type"]
             if type == "jwt":
                 token = credential.get("token")
-                session = jwt_sessions.get("token")
+                session = jwt_sessions.get(token)
                 if not session:
                     response.append({"crendentaial": token, "valid": False, "reason": "Unknown"})
                 expiry_time = datetime.fromtimestamp(jwt_sessions[token]["expires_at"])
@@ -30,6 +31,9 @@ class Verification:
                         "reason": "JWT expired",
                         "principal_type": principal_type
                     })
+                    audit_logs.append(
+                        f"{current_time.strftime("%Y-%m-%dT%H:%M:%SZ")} jwt_expired:JWT expired"
+                    )
                 else:
                     response.append({
                         "credential": token,
@@ -45,14 +49,18 @@ class Verification:
                         "response": "API key revoked",
                         "principal_type": principal_type
                     })
+                    audit_logs.append(
+                        f"{current_time.strftime("%Y-%m-%dT%H:%M:%SZ")} {id}:API key revoked"
+                    )
                 else:
                     response.append({
                         "credential": id,
                         "valid": True,
                         "principal_type": principal_type
                     })
+                    
         
-        return response
+        return {"results": response, "audit_log": audit_logs}
     
 data = {
   "credentials": [
